@@ -1,0 +1,5 @@
+node_modules/
+tmp/
+v2/
+dir2reg.sh
+.dev.vars
