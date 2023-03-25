@@ -1,0 +1,9 @@
+version: '2'
+services:
+  docker-registry-cf:
+    image: docker-registry-cf
+    build: .
+    ports:
+      - 8787:8787
+    container_name: docker-registry-cf
+    restart: unless-stopped
