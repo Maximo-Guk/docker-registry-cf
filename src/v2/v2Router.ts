@@ -165,62 +165,69 @@ v2Router.post('/:name/blobs/uploads/', async (req, env: Env) => {
 	});
 });
 
-// v2Router.patch('/:name/blobs/uploads/:uuid', async (req, env: Env) => {
-// 	const { name, uuid } = req.params;
+v2Router.patch('/:name/blobs/uploads/:uuid', async (req, env: Env) => {
+	const { name, uuid } = req.params;
 
-// 	const state = JSON.parse(req.query._state as string);
+	const state = JSON.parse(req.query._state as string);
 
-// 	// Use the r2 bindings to store the chunk data in Workers KV
-// 	const upload = env.REGISTRY.resumeMultipartUpload(`${uuid}`, state.uploadId);
+	// Use the r2 bindings to store the chunk data in Workers KV
+	const upload = env.REGISTRY.resumeMultipartUpload(`${uuid}`, state.uploadId);
 
-// 	const [body1, body2] = req.body.tee();
+	const [body1, body2] = req.body.tee();
 
-// 	const uploadTask = upload.uploadPart(state.parts.length + 1, body2);
+	const uploadTask = upload.uploadPart(state.parts.length + 1, body2);
 
-// 	let bodySize = 0;
-// 	const body1Reader = body1.getReader();
-// 	while (true) {
-// 		const { done, value } = await body1Reader.read();
-// 		if (done) {
-// 			break;
-// 		}
-// 		bodySize += value.length;
-// 	}
+	let bodySize = 0;
+	const body1Reader = body1.getReader();
+	while (true) {
+		const { done, value } = await body1Reader.read();
+		if (done) {
+			break;
+		}
+		bodySize += value.length;
+	}
 
-// 	const res = await uploadTask;
-// 	state.parts.push(res);
-// 	const stateStr = encodeURIComponent(JSON.stringify(state));
+	const res = await uploadTask;
+	state.parts.push(res);
+	const stateStr = encodeURIComponent(JSON.stringify(state));
 
-// 	// Return a res indicating that the chunk was successfully uploaded
-// 	return new Response(null, {
-// 		status: 202,
-// 		headers: {
-// 			Location: `/v2/${name}/blobs/uploads/${uuid}?_state=${stateStr}`,
-// 			Range: `0-${bodySize}`,
-// 			'Docker-Upload-UUID': uuid,
-// 		},
-// 	});
-// });
+	// Return a res indicating that the chunk was successfully uploaded
+	return new Response(null, {
+		status: 202,
+		headers: {
+			Location: `/v2/${name}/blobs/uploads/${uuid}?_state=${stateStr}`,
+			Range: `0-${bodySize}`,
+			'Docker-Upload-UUID': uuid,
+		},
+	});
+});
 
 v2Router.put('/:name/blobs/uploads/:uuid', async (req, env: Env) => {
 	const { name, uuid } = req.params;
 	const { _state, digest } = req.query;
 	const state = JSON.parse(_state as string);
 
-	const upload = env.REGISTRY.resumeMultipartUpload(uuid, state.uploadId);
-	await upload.complete(state.parts);
+	if (state.parts.length === 0) {
+		await env.REGISTRY.put(`${name}/blobs/${digest}`, req.body, {
+			sha256: (digest as string).slice(7),
+		});
+	} else {
+		const upload = env.REGISTRY.resumeMultipartUpload(uuid, state.uploadId);
+		await upload.complete(state.parts);
+		const obj = await env.REGISTRY.get(uuid);
 
-	const obj = await env.REGISTRY.get(uuid);
+		await env.REGISTRY.put(`${name}/blobs/${digest}`, obj!.body, {
+			sha256: (digest as string).slice(7),
+		});
 
-	await env.REGISTRY.put(`${name}/blobs/${digest}`, obj!.body, {
-		sha256: (digest as string).slice(7),
-	});
-
-	await env.REGISTRY.delete(uuid);
+		await env.REGISTRY.delete(uuid);
+	}
 
 	return new Response(null, {
 		status: 201,
 		headers: {
+			'Content-Length': '0',
+			'Docker-Content-Digest': `${digest}`,
 			Location: `/v2/${name}/blobs/${digest}`,
 		},
 	});
