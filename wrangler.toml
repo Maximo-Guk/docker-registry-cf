@@ -1,7 +1,8 @@
 name = "docker-registry-cf"
 main = "src/index.ts"
 workers_dev = false
-compatibility_date = "2023-03-19"
+compatibility_date = "2023-06-04"
+send_metrics = false
 
 [[r2_buckets]]
 binding = 'REGISTRY'

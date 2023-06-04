@@ -3,6 +3,8 @@ services:
   docker-registry-cf:
     image: docker-registry-cf
     build: .
+    volumes:
+      - .dev.vars:/usr/src/app/.dev.vars:ro
     ports:
       - 8787:8787
     container_name: docker-registry-cf

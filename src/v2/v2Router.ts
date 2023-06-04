@@ -90,14 +90,14 @@ v2Router.put('/:name/manifests/:reference', async (req, env: Env) => {
 	await env.REGISTRY.put(`${name}/manifests/${reference}`, res2!.body, {
 		sha256: digest,
 		httpMetadata: {
-			contentType: req.headers.get('Content-Type'),
+			contentType: req.headers.get('Content-Type')!,
 		},
 	});
 	const res3 = await env.REGISTRY.get(uuid);
 	await env.REGISTRY.put(`${name}/manifests/${digestStr}`, res3!.body, {
 		sha256: digest,
 		httpMetadata: {
-			contentType: req.headers.get('Content-Type'),
+			contentType: req.headers.get('Content-Type')!,
 		},
 	});
 	await env.REGISTRY.delete(uuid);
